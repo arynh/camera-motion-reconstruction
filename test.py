@@ -14,6 +14,9 @@ iphone_12_mini_k = [
     [0, 0, 1],
 ]
 
-E = calculate_essential_matrix(matched_points, iphone_12_mini_k, 0.01)
+height, width, _ = frame_one.shape
+m = height if height > width else width
+
+E = calculate_essential_matrix(matched_points, iphone_12_mini_k, m, 0.01)
 
 print(E / E.max())

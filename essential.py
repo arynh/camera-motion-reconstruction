@@ -66,6 +66,7 @@ def score_fundamental_matrix(
 def calculate_essential_matrix(
     corresponding_points: np.ndarray,
     k: np.ndarray,
+    m: int,
     reprojection_error_tolerance: float,
     ransac_iterations: int = 1000,
 ) -> np.ndarray:
@@ -81,10 +82,12 @@ def calculate_essential_matrix(
     :type reprojection_error_tolerance: float
     :param ransac_iterations: number of iterations to run ransac, default 1000
     :type ransac_iterations: int
+    :param m: value to scale points by m = max(im_width,im_height)
+    :type m: int
     :return E: essential matrix
     :rtype: np.ndarray (3 x 3)
     """
-    # TODO: normalize points
+    corresponding_points /= m  # normalize points
     N = corresponding_points.shape[1]  # get the number of features
 
     max_inliers = -1
@@ -135,6 +138,6 @@ def calculate_essential_matrix(
             optimal_F = F
 
     F = optimal_F
-    # TODO: unnormalize F once it is calulated
-    E = np.transpose(k) @ F @ k  # compute the essential matrix
+    F *= m  # un-normalize m
+    E = k.T @ F @ k  # compute the essential matrix
     return E
