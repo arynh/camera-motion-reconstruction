@@ -69,6 +69,7 @@ def calculate_essential_matrix(
     k: np.ndarray,
     reprojection_error_tolerance: float,
     ransac_iterations: int = 1000,
+    m: int
 ) -> np.ndarray:
     """
     Estimate the fundemental matrix using RANSAC and then use the intrinsic
@@ -82,10 +83,12 @@ def calculate_essential_matrix(
     :type reprojection_error_tolerance: float
     :param ransac_iterations: number of iterations to run ransac, default 1000
     :type ransac_iterations: int
+    :param m: value to scale points by m = max(im_width,im_height)
+    :type m: int
     :return E: essential matrix
     :rtype: np.ndarray (3 x 3)
     """
-    # TODO: normalize points
+    corresponding_points /= m #normalize points
     N = corresponding_points.shape[1]  # get the number of features
 
     max_inliers = -1
@@ -116,7 +119,6 @@ def calculate_essential_matrix(
 
         _, _, Vt = la.svd(A)
         F = Vt[-1, :].reshape((3, 3))  # compute fundemental matrix
-
         # using Levenberg–Marquardt, this is what the code would be:
         # I tested both, and looks like least_squares is faster, but the answers
         # are vastly different lol
@@ -136,6 +138,6 @@ def calculate_essential_matrix(
             optimal_F = F
 
     F = optimal_F
-    # TODO: unnormalize F once it is calulated
+    F *= m #un-normalize m
     E = np.transpose(k) @ F @ k  # compute the essential matrix
     return E
