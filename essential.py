@@ -21,7 +21,7 @@ def calculate_essential_matrix(cp, k):
     :return E: essential matrix
     :rtype: np.ndarray (2 x number of features x 2)
     """
-    N = len(cp) #get the number of features
+    N = len(cp[0]) #get the number of features
     A = np.zeros((N, 9), dtype=float)  # create an empty A matrix
     for i in range(N):
         x = cp[0, i, 0]
