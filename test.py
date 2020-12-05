@@ -14,6 +14,6 @@ iphone_12_mini_k = [
     [0, 0, 1],
 ]
 
-E = calculate_essential_matrix(matched_points, iphone_12_mini_k, 0.1)
+E = calculate_essential_matrix(matched_points, iphone_12_mini_k, 0.01)
 
-print(E)
+print(E / E.max())

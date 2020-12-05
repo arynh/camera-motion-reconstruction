@@ -4,8 +4,7 @@ and a list of the corresponding points between the two frames.
 """
 import numpy as np
 import scipy.linalg as la
-
-# from scipy.optimize import least_squares
+from scipy.optimize import least_squares
 
 k = [
     [1.3270361480372305e3, 0, 9.6142138175295599e2],
@@ -61,7 +60,7 @@ def score_fundamental_matrix(
             frame_two_points[point_index].T @ F @ frame_one_points[point_index]
         )
 
-    return np.sum(errors > tolerance)
+    return np.sum(errors < tolerance)
 
 
 def calculate_essential_matrix(
@@ -89,7 +88,7 @@ def calculate_essential_matrix(
     N = corresponding_points.shape[1]  # get the number of features
 
     max_inliers = -1
-    optimal_F = np.random.rand(3, 3) * 100.0 - 50.0
+    optimal_F = np.random.rand(3, 3) - 0.5
     A = np.zeros((N, 9), dtype=np.float64)
     for _ in range(ransac_iterations):
         # choose 8 random points for 8-points algorithm
@@ -114,15 +113,15 @@ def calculate_essential_matrix(
                 1,
             ]  # populate the A matrix
 
-        _, _, Vt = la.svd(A)
-        F = Vt[-1, :].reshape((3, 3))  # compute fundemental matrix
+        # _, _, Vt = la.svd(A)
+        # F = Vt[-1, :].reshape((3, 3))  # compute fundemental matrix
 
         # using Levenberg–Marquardt, this is what the code would be:
         # I tested both, and looks like least_squares is faster, but the answers
         # are vastly different lol
         # TODO: figure out if this works ?
-        # F = least_squares(lambda f: A @ f, optimal_F.reshape(9), method="lm").x
-        # F = F.reshape((3, 3))
+        F = least_squares(lambda f: A @ f, optimal_F.reshape(9), method="lm").x
+        F = F.reshape((3, 3))
 
         inlier_count = score_fundamental_matrix(
             F,
@@ -131,7 +130,7 @@ def calculate_essential_matrix(
             reprojection_error_tolerance,
         )
         if inlier_count > max_inliers:
-            print(inlier_count)
+            print(f"New best inlier count: {inlier_count} / {N}")
             max_inliers = inlier_count
             optimal_F = F
 
