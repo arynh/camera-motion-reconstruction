@@ -116,13 +116,6 @@ def calculate_essential_matrix(
                 1,
             ]  # populate the A matrix
 
-        # _, _, Vt = la.svd(A)
-        # F = Vt[-1, :].reshape((3, 3))  # compute fundemental matrix
-
-        # using Levenberg–Marquardt, this is what the code would be:
-        # I tested both, and looks like least_squares is faster, but the answers
-        # are vastly different lol
-        # TODO: figure out if this works ?
         F = least_squares(lambda f: A @ f, optimal_F.reshape(9), method="lm").x
         F = F.reshape((3, 3))
 
@@ -133,10 +126,10 @@ def calculate_essential_matrix(
             reprojection_error_tolerance,
         )
         if inlier_count > max_inliers:
-            print(f"New best inlier count: {inlier_count} / {N}")
             max_inliers = inlier_count
             optimal_F = F
 
+    # print(f"Inlier count: {max_inliers} / {N}")
     F = optimal_F
     F *= m  # un-normalize m
     E = k.T @ F @ k  # compute the essential matrix
