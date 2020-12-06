@@ -1,5 +1,11 @@
 """Helper functions to plot visualizations.
 
+Note some of the functions assume that a 3D plot was created 
+beforehand so that the axis can be passed in as a parameter. 
+Here are the lines to create a 3D plot with matplotlib:
+    fig = plt.figure()
+    ax = plt.axes(projection='3d')
+
 Includes the following visualization tools: 
     * Plot camera motion on 3D plot
 """
