@@ -62,7 +62,7 @@ def estimate_camera_pose(essential_matrix, feature_points, intrinsic_matrix):
 
             if front_count > best_count:
                 rotation_transform[:3, :3] = R
-                translation_transform[3, :3] = t
+                translation_transform[:3, 3] = t
                 best_count = front_count
 
     return rotation_transform, translation_transform
