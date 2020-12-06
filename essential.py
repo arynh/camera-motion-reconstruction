@@ -41,7 +41,7 @@ def score_fundamental_matrix(
             frame_two_points[point_index].T @ F @ frame_one_points[point_index]
         )
 
-    return np.sum(errors > tolerance)
+    return np.sum(errors < tolerance)
 
 
 def calculate_essential_matrix(
