@@ -7,6 +7,7 @@ import numpy as np
 
 from features import find_point_correspondences
 from essential import calculate_essential_matrix
+from reconstruction import estimate_camera_pose
 
 
 def test_basic():
@@ -19,7 +20,7 @@ def test_basic():
 
     matched_points = find_point_correspondences(frame_one, frame_one)
     assert matched_points.shape[1] > 100
-    print(f"Found {matched_points.shape[1]} point correspondences.")
+    print(f"\nFound {matched_points.shape[1]} point correspondences.")
 
     intrinsic_matrix = np.array(
         [
@@ -44,3 +45,14 @@ def test_basic():
     assert not np.isclose(essential_matrix, np.zeros(essential_matrix.shape)).all()
     print("Estimated essential matrix:")
     print(essential_matrix)
+
+    rotation, translation = estimate_camera_pose(
+        essential_matrix, matched_points, intrinsic_matrix
+    )
+    # make sure they are homogeneous transformation matrices
+    assert rotation.shape == (4, 4)
+    assert translation.shape == (4, 4)
+    print("Estimated rotation matrix:")
+    print(rotation)
+    print("Estimated translation matrix:")
+    print(translation)
