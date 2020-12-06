@@ -3,14 +3,7 @@ Calculate the Essential Matrix between two frames using the instrinic matrix
 and a list of the corresponding points between the two frames.
 """
 import numpy as np
-import scipy.linalg as la
 from scipy.optimize import least_squares
-
-k = [
-    [1.3270361480372305e3, 0, 9.6142138175295599e2],
-    [0, 1.3325859916429802e3, 5.3765189758345116e2],
-    [0, 0, 1],
-]
 
 
 def score_fundamental_matrix(
@@ -38,20 +31,8 @@ def score_fundamental_matrix(
     assert point_count == frame_two_points.shape[0]
 
     # points should be in homogenous coordinates
-    frame_one_points = np.column_stack(
-        (
-            frame_one_points[:, 0],
-            frame_one_points[:, 1],
-            np.ones(point_count),
-        )
-    )
-    frame_two_points = np.column_stack(
-        (
-            frame_two_points[:, 0],
-            frame_two_points[:, 1],
-            np.ones(point_count),
-        )
-    )
+    frame_one_points = np.column_stack((frame_one_points, np.ones(point_count)))
+    frame_two_points = np.column_stack((frame_two_points, np.ones(point_count)))
 
     errors = np.zeros(point_count, dtype=np.float64)
     for point_index in range(point_count):
@@ -65,8 +46,8 @@ def score_fundamental_matrix(
 
 def calculate_essential_matrix(
     corresponding_points: np.ndarray,
-    k: np.ndarray,
-    m: int,
+    intrinsic_matrix: np.ndarray,
+    largest_dimension: int,
     reprojection_error_tolerance: float,
     ransac_iterations: int = 1000,
 ) -> np.ndarray:
@@ -87,11 +68,11 @@ def calculate_essential_matrix(
     :return E: essential matrix
     :rtype: np.ndarray (3 x 3)
     """
-    corresponding_points /= m  # normalize points
+    corresponding_points /= largest_dimension  # normalize points
     N = corresponding_points.shape[1]  # get the number of features
 
     max_inliers = -1
-    optimal_F = np.random.rand(3, 3) - 0.5
+    optimal_f = np.random.rand(3, 3) - 0.5
     A = np.zeros((N, 9), dtype=np.float64)
     for _ in range(ransac_iterations):
         # choose 8 random points for 8-points algorithm
@@ -116,7 +97,7 @@ def calculate_essential_matrix(
                 1,
             ]  # populate the A matrix
 
-        F = least_squares(lambda f: A @ f, optimal_F.reshape(9), method="lm").x
+        F = least_squares(lambda f: A @ f, optimal_f.reshape(9), method="lm").x
         F = F.reshape((3, 3))
 
         inlier_count = score_fundamental_matrix(
@@ -127,10 +108,9 @@ def calculate_essential_matrix(
         )
         if inlier_count > max_inliers:
             max_inliers = inlier_count
-            optimal_F = F
+            optimal_f = F
 
-    # print(f"Inlier count: {max_inliers} / {N}")
-    F = optimal_F
-    F *= m  # un-normalize m
-    E = k.T @ F @ k  # compute the essential matrix
+    F = optimal_f
+    F *= largest_dimension  # un-normalize m
+    E = intrinsic_matrix.T @ F @ intrinsic_matrix  # compute the essential matrix
     return E
