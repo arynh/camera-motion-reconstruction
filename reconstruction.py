@@ -6,15 +6,15 @@ def estimate_camera_pose(essential_matrix, feature_points, intrinsic_matrix):
     Given an essential matrix (from frame1 to frame2) and a set of 
     feature points, estimate the camera pose for camera2.
 
-    Input:
-        :param essential_matrix: Essential matrix between two camera views
-        :type essential_matrix: np.ndarray (3 x 3)
-        :param feature_points: Feature points in image coordinates
-        :type feature_points: np.ndarray (2 x number of features x 2)
-        :param intrinsic_matrix: Intrinsic camera matrix
-        :type intrinsic_matrix: np.ndarray (3 x 3)
-        :return: Estimated camera projection matrix of camera2
-        :rtype: np.ndarray (3 x 4)
+    :param essential_matrix: Essential matrix between two camera views
+    :type essential_matrix: np.ndarray (3 x 3)
+    :param feature_points: Feature points in image coordinates
+    :type feature_points: np.ndarray (2 x number of features x 2)
+    :param intrinsic_matrix: Intrinsic camera matrix
+    :type intrinsic_matrix: np.ndarray (3 x 3)
+    :returns: Tuple of two transformation matrices, the first 
+        representing rotation and second representing translation.
+    :rtype: Tuple [np.ndarray (4 x 4), np.ndarray (4 x 4)]
     """
     n_points = feature_points.shape[1]
 
@@ -43,7 +43,8 @@ def estimate_camera_pose(essential_matrix, feature_points, intrinsic_matrix):
         [0, 0, 1, 0]
     ])
 
-    camera2_matrix = np.zeros((3,4))
+    rotation_transform = np.eye(4)
+    translation_transform = np.eye(4)
 
     # Track the number of points that appear in front of 
     # both cameras. The combination of R and t that results
@@ -71,7 +72,9 @@ def estimate_camera_pose(essential_matrix, feature_points, intrinsic_matrix):
                     front_count += 1
 
             if front_count > best_count:
-                camera2_matrix = np.column_stack((R, t))
+                rotation_transform[:3,:3] = R
+                translation_transform[3,:3] = t
                 best_count = front_count
 
-    return camera2_matrix
+    return rotation_transform, translation_transform
+    
