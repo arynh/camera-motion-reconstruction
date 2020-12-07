@@ -53,8 +53,8 @@ def plot_camera_motion(ax_3d, c_pos, c_view):
         c_pos[:, 1],
         c_pos[:, 2],
         c_view[:, 0],
-        c_view[:, 0],
-        c_view[:, 0],
+        c_view[:, 1],
+        c_view[:, 2],
         length=0.5,
         normalize=True,
     )
