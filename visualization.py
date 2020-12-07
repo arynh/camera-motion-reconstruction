@@ -16,6 +16,7 @@ import cv2
 
 # TODO: maybe also add the plotting SIFT points?
 
+
 def draw_epipolar_lines(img1, img2, pts1, pts2, F):
     """
     Compute and draw epipolar lines onto two images, associated
@@ -34,6 +35,7 @@ def draw_epipolar_lines(img1, img2, pts1, pts2, F):
     """
     pass
 
+
 def plot_camera_motion(ax_3d, c_pos, c_view):
     """
     Plot points for camera position and arrows for view vectors.
@@ -46,19 +48,18 @@ def plot_camera_motion(ax_3d, c_pos, c_view):
     :type c_view: np.ndarray (N x 3)
     """
     assert c_pos.shape == c_view.shape
-    ax_3d.quiver(c_pos[:,0], 
-              c_pos[:,1], 
-              c_pos[:,2],
-              c_view[:,0],
-              c_view[:,0],
-              c_view[:,0],
-              length=0.5,
-              normalize=True) 
-    ax_3d.plot(c_pos[:,0], 
-            c_pos[:,1], 
-            c_pos[:,2],
-            marker='.',
-            color='g')
+    ax_3d.quiver(
+        c_pos[:, 0],
+        c_pos[:, 1],
+        c_pos[:, 2],
+        c_view[:, 0],
+        c_view[:, 0],
+        c_view[:, 0],
+        length=0.5,
+        normalize=True,
+    )
+    ax_3d.plot(c_pos[:, 0], c_pos[:, 1], c_pos[:, 2], marker=".", color="g")
+
 
 def plot_feature_points(ax_3d, feature_pts, transformation_matrix):
     """
@@ -74,6 +75,7 @@ def plot_feature_points(ax_3d, feature_pts, transformation_matrix):
     # TODO?
     pass
 
+
 def plot_3d_points(ax_3d, pts):
     """
     Plot points in world coordinates.
@@ -83,4 +85,4 @@ def plot_3d_points(ax_3d, pts):
     :param pts: array of N points in world coordinates
     :type pts: np.ndarray (N x 3)
     """
-    ax_3d.plot(pts[:,0], pts[:,1], pts[:,2])
+    ax_3d.plot(pts[:, 0], pts[:, 1], pts[:, 2])
