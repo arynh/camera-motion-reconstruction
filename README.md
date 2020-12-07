@@ -4,6 +4,9 @@ Reconstruct the 3D motion of a camera given a simple monocular video of a static
 
 We implement basic reconstruction using the motion of detected feature points and epipolar geometry.
 
+![pytest](https://github.com/arynh/camera-motion-reconstruction/workflows/Python%20package/badge.svg)
+![CodeQL](https://github.com/arynh/camera-motion-reconstruction/workflows/CodeQL/badge.svg)
+
 ## Contributors
 
 - Rishi Pandey - [rishipandey125](https://github.com/rishipandey125)
