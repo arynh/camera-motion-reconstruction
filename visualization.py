@@ -22,6 +22,8 @@ def draw_epipolar_lines(img1, img2, pts1, pts2, F):
     Compute and draw epipolar lines onto two images, associated
     by fundamntal matrix F.
 
+    Source: OpenCV
+
     :param img1: First image
     :type img1: np.ndarray (H x W x 3)
     :param img2: Second image
@@ -33,7 +35,37 @@ def draw_epipolar_lines(img1, img2, pts1, pts2, F):
     :param F: Fundamental matrix between img1 and img2
     :type F: np.ndarray (3 x 3)
     """
-    pass
+
+    def drawlines(img1, img2, lines, pts1, pts2):
+        img1 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
+        img2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
+        r, c = img1.shape
+        img1 = cv2.cvtColor(img1, cv2.COLOR_GRAY2BGR).astype(np.float32) / 256.0
+        img2 = cv2.cvtColor(img2, cv2.COLOR_GRAY2BGR).astype(np.float32) / 256.0
+
+        for r, pt1, pt2 in zip(lines, pts1, pts2):
+
+            color = tuple(np.random.randint(0, 255, 3).tolist())
+
+            x0, y0 = map(int, [0, -r[2] / r[1]])
+            x1, y1 = map(int, [c, -(r[2] + r[0] * c) / r[1]])
+
+            img1 = cv2.line(img1, (x0, y0), (x1, y1), color, 1)
+            img1 = cv2.circle(img1, tuple(pt1.astype(np.int)), 5, color, -1)
+            img2 = cv2.circle(img2, tuple(pt2.astype(np.int)), 5, color, -1)
+        return img1, img2
+
+    linesLeft = cv2.computeCorrespondEpilines(pts2, 2, F)
+    linesLeft = linesLeft.reshape(-1, 3)
+    img5, img6 = drawlines(img1, img2, linesLeft, pts1, pts2)
+
+    linesRight = cv2.computeCorrespondEpilines(pts1, 1, F)
+    linesRight = linesRight.reshape(-1, 3)
+    img3, img4 = drawlines(img2, img1, linesRight, pts2, pts1)
+
+    plt.subplot(121), plt.imshow(img5)
+    plt.subplot(122), plt.imshow(img3)
+    plt.show()
 
 
 def plot_camera_motion(ax_3d, c_pos, c_view):
@@ -48,6 +80,9 @@ def plot_camera_motion(ax_3d, c_pos, c_view):
     :type c_view: np.ndarray (N x 3)
     """
     assert c_pos.shape == c_view.shape
+    ax_3d.set_xlim3d(-5, 5)
+    ax_3d.set_ylim3d(-5, 5)
+    ax_3d.set_zlim3d(-1, 9)
     ax_3d.quiver(
         c_pos[:, 0],
         c_pos[:, 1],
@@ -55,7 +90,7 @@ def plot_camera_motion(ax_3d, c_pos, c_view):
         c_view[:, 0],
         c_view[:, 1],
         c_view[:, 2],
-        length=0.5,
+        length=1,
         normalize=True,
     )
     ax_3d.plot(c_pos[:, 0], c_pos[:, 1], c_pos[:, 2], marker=".", color="g")
