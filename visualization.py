@@ -121,3 +121,89 @@ def plot_3d_points(ax_3d, pts):
     :type pts: np.ndarray (N x 3)
     """
     ax_3d.plot(pts[:, 0], pts[:, 1], pts[:, 2])
+
+
+if __name__ == "__main__":
+    import cv2
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from features import find_point_correspondences
+    from essential import calculate_essential_matrix
+    from reconstruction import estimate_camera_pose
+    from visualization import plot_camera_motion
+
+    def vector_to_string(v):
+        return "({:.3f}, {:.3f}, {:.3f})".format(v[0] / v[3], v[1] / v[3], v[2] / v[3])
+
+    iphone_12_mini_k = np.array(
+        [
+            [1.3270361480372305e3, 0, 9.6142138175295599e2],
+            [0, 1.3325859916429802e3, 5.3765189758345116e2],
+            [0, 0, 1],
+        ],
+        dtype=np.float64,
+    )
+
+    iphone_12_mini_k = np.array(
+        [
+            [2.9811618446106363e3, 0.0, 9.8161990924832332e2],
+            [0.0, 9.9145760093363208e2, 5.4951893357740482e2],
+            [0.0, 0.0, 1.0],
+        ],
+        dtype=np.float64,
+    )
+
+    camera_positions = np.array([[0, 0, 0, 1]], dtype=np.float64)
+    camera_directions = np.array([[0, 0, 1, 1]], dtype=np.float64)
+
+    # print camera position and direction for .csv
+    print(f"0.0,0.0,0.0", end=",")
+    print(f"0.0,0.0,1.0")
+
+    n_frames = 40
+    step_size = 5
+    for frame_index in range(1, n_frames - step_size, step_size):
+        frame_one = cv2.imread(
+            "samples/tiles0/f{num}.jpg".format(num=str(frame_index).zfill(4))
+        )
+        frame_two = cv2.imread(
+            "samples/tiles0/f{num}.jpg".format(
+                num=str(frame_index + step_size).zfill(4)
+            )
+        )
+        # print(frame_index, 'to', frame_index+step_size)
+
+        matched_points = find_point_correspondences(frame_one, frame_two)
+
+        height, width, _ = frame_one.shape
+        m = height if height > width else width
+
+        E = calculate_essential_matrix(matched_points, iphone_12_mini_k, m, 0.001)
+        # draw_epipolar_lines(
+        #     frame_one, frame_two, matched_points[0, :100], matched_points[1, :100], F
+        # )
+
+        rotation, translation = estimate_camera_pose(
+            E, matched_points, iphone_12_mini_k
+        )
+
+        new_position = translation @ camera_positions[-1]
+        camera_positions = np.vstack((camera_positions, new_position))
+
+        new_direction = rotation @ camera_directions[-1]
+        camera_directions = np.vstack((camera_directions, new_direction))
+
+        # print camera position and direction for .csv
+        print(f"{new_position[0]},{new_position[1]},{new_position[2]}", end=",")
+        print(f"{new_direction[0]},{new_direction[1]},{new_direction[2]}")
+
+        # print(
+        #     f"frame {frame_index}/{n_frames}; "
+        #     + f"position: {vector_to_string(new_position)}, "
+        #     + f"direction: {vector_to_string(new_direction)}"
+        # )
+
+    fig = plt.figure()
+    ax = plt.axes(projection="3d")
+    plot_camera_motion(ax, camera_positions[:, :3], camera_directions[:, :3])
+    plt.show()
