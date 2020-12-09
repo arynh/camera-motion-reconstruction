@@ -3,7 +3,11 @@ Calculate the Essential Matrix between two frames using the instrinic matrix
 and a list of the corresponding points between the two frames.
 """
 import numpy as np
-from scipy.optimize import least_squares
+import scipy.optimize as spo
+import scipy.linalg as la
+
+# global learned F, kept in memory between iterations
+F_OPTIMAL = np.ones((3, 3), dtype=np.float64)
 
 
 def score_fundamental_matrix(
@@ -36,12 +40,12 @@ def score_fundamental_matrix(
 
     errors = np.zeros(point_count, dtype=np.float64)
     for point_index in range(point_count):
-        # x'.T F x = 0 in a perfect reprojection
+        # x.T F x' = 0 in a perfect reprojection (Longuet-Higgins Equation)
         errors[point_index] = np.abs(
-            frame_two_points[point_index].T @ F @ frame_one_points[point_index]
+            frame_one_points[point_index].T @ F @ frame_two_points[point_index]
         )
-
-    return np.sum(errors < tolerance)
+    inliers = errors < tolerance
+    return np.sum(inliers), frame_one_points[inliers], frame_two_points[inliers]
 
 
 def calculate_essential_matrix(
@@ -72,15 +76,17 @@ def calculate_essential_matrix(
     N = corresponding_points.shape[1]  # get the number of features
 
     max_inliers = -1
-    optimal_f = np.random.rand(3, 3) - 0.5
-    A = np.zeros((N, 9), dtype=np.float64)
+    sample_count = 8  # for 8 point algorithm
+    global F_OPTIMAL
+    optimal_f = F_OPTIMAL.copy()
+    A = np.zeros((sample_count, 9), dtype=np.float64)
     for _ in range(ransac_iterations):
         # choose 8 random points for 8-points algorithm
-        subset = np.random.choice(N, 8, replace=False)
+        subset = np.random.choice(N, sample_count, replace=False)
         frame_one_points = corresponding_points[0, subset]
         frame_two_points = corresponding_points[1, subset]
 
-        for i in range(8):
+        for i in range(sample_count):
             x = frame_one_points[i, 0]
             y = frame_one_points[i, 1]
             xp = frame_two_points[i, 0]
@@ -97,10 +103,11 @@ def calculate_essential_matrix(
                 1,
             ]  # populate the A matrix
 
-        F = least_squares(lambda f: A @ f, optimal_f.reshape(9), method="lm").x
+        # Minimize ||Af||
+        F = spo.least_squares(lambda f: A @ f, optimal_f.reshape(9), method="lm").x
         F = F.reshape((3, 3))
 
-        inlier_count = score_fundamental_matrix(
+        inlier_count, frame_one_inliers, frame_two_inliers = score_fundamental_matrix(
             F,
             corresponding_points[0],
             corresponding_points[1],
@@ -110,7 +117,28 @@ def calculate_essential_matrix(
             max_inliers = inlier_count
             optimal_f = F
 
-    F = optimal_f
-    F *= largest_dimension  # un-normalize m
-    E = intrinsic_matrix.T @ F @ intrinsic_matrix  # compute the essential matrix
+    # refine F based on inliers
+    def objective(f):
+        errors = np.zeros(inlier_count, dtype=np.float64)
+        for point_index in range(inlier_count):
+            errors[point_index] = (
+                frame_one_inliers[point_index].T
+                @ f.reshape((3, 3))
+                @ frame_two_inliers[point_index]
+            )
+        return np.sum(errors ** 2) / inlier_count
+
+    # Minimize \( 1/n*∑_i^n(x_i^T F x_i')^2 \)
+    F = spo.least_squares(objective, optimal_f.reshape(9)).x
+
+    F_OPTIMAL = F / la.norm(F)
+
+    # from Forcythe and Ponce, set singular values
+    U, sigma, Vt = la.svd(F)
+    sigma[2] = 0
+    F = U @ np.diag(sigma) @ Vt
+    F *= float(largest_dimension)
+    E = intrinsic_matrix.T @ F @ intrinsic_matrix
+    U, sigma, Vt = la.svd(E)
+    E = U @ np.diag([1.0, 1.0, 0.0]) @ Vt
     return E
