@@ -80,9 +80,9 @@ def plot_camera_motion(ax_3d, c_pos, c_view):
     :type c_view: np.ndarray (N x 3)
     """
     assert c_pos.shape == c_view.shape
-    ax_3d.set_xlim3d(-5, 5)
-    ax_3d.set_ylim3d(-5, 5)
-    ax_3d.set_zlim3d(-1, 9)
+    ax_3d.set_xlim3d(c_pos.min(), c_pos.max())
+    ax_3d.set_ylim3d(c_pos.min(), c_pos.max())
+    ax_3d.set_zlim3d(c_pos.min(), c_pos.max())
     ax_3d.quiver(
         c_pos[:, 0],
         c_pos[:, 1],
@@ -143,7 +143,6 @@ if __name__ == "__main__":
         ],
         dtype=np.float64,
     )
-
     iphone_12_mini_k = np.array(
         [
             [2.9811618446106363e3, 0.0, 9.8161990924832332e2],
@@ -160,25 +159,27 @@ if __name__ == "__main__":
     print(f"0.0,0.0,0.0", end=",")
     print(f"0.0,0.0,1.0")
 
-    n_frames = 40
+    n_frames = 77
     step_size = 5
     for frame_index in range(1, n_frames - step_size, step_size):
         frame_one = cv2.imread(
-            "samples/tiles0/f{num}.jpg".format(num=str(frame_index).zfill(4))
+            "samples/pan-strict/f{num}.jpg".format(num=str(frame_index).zfill(4))
         )
         frame_two = cv2.imread(
-            "samples/tiles0/f{num}.jpg".format(
+            "samples/pan-strict/f{num}.jpg".format(
                 num=str(frame_index + step_size).zfill(4)
             )
         )
         # print(frame_index, 'to', frame_index+step_size)
 
-        matched_points = find_point_correspondences(frame_one, frame_two)
+        matched_points = find_point_correspondences(frame_one.copy(), frame_two.copy())
 
         height, width, _ = frame_one.shape
         m = height if height > width else width
 
-        E = calculate_essential_matrix(matched_points, iphone_12_mini_k, m, 0.001)
+        E = calculate_essential_matrix(
+            matched_points.copy(), iphone_12_mini_k.copy(), m, 0.001
+        )
         # draw_epipolar_lines(
         #     frame_one, frame_two, matched_points[0, :100], matched_points[1, :100], F
         # )
@@ -194,14 +195,14 @@ if __name__ == "__main__":
         camera_directions = np.vstack((camera_directions, new_direction))
 
         # print camera position and direction for .csv
-        print(f"{new_position[0]},{new_position[1]},{new_position[2]}", end=",")
-        print(f"{new_direction[0]},{new_direction[1]},{new_direction[2]}")
+        # print(f"{new_position[0]},{new_position[1]},{new_position[2]}", end=",")
+        # print(f"{new_direction[0]},{new_direction[1]},{new_direction[2]}")
 
-        # print(
-        #     f"frame {frame_index}/{n_frames}; "
-        #     + f"position: {vector_to_string(new_position)}, "
-        #     + f"direction: {vector_to_string(new_direction)}"
-        # )
+        print(
+            f"frame {frame_index}/{n_frames}; "
+            + f"position: {vector_to_string(new_position)}, "
+            + f"direction: {vector_to_string(new_direction)}"
+        )
 
     fig = plt.figure()
     ax = plt.axes(projection="3d")

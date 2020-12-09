@@ -25,12 +25,16 @@ def estimate_camera_pose(essential_matrix, feature_points, intrinsic_matrix):
 
     U, _, Vt = svd(essential_matrix)
 
-    potential_rotation_matrices = [U @ W @ Vt, U @ W.T @ Vt, U @ -W @ Vt, U @ -W.T @ Vt]
+    # p. 227 from forcythe indicates that we can flip the determinant of R by
+    # negating the third column of U and/or V
+    if det(U) < 0:
+        U[2] *= -1.0
+    if det(Vt) < 0:
+        Vt[:, 2] *= -1.0
+
+    potential_rotation_matrices = [U @ W @ Vt, U @ W.T @ Vt]
 
     potential_translation_vectors = [U[-1, :], -U[-1, :]]
-
-    # Assume camera1 is fixed at [I|0]
-    camera1_matrix = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]])
 
     rotation_transform = np.eye(4)
     translation_transform = np.eye(4)
@@ -41,15 +45,11 @@ def estimate_camera_pose(essential_matrix, feature_points, intrinsic_matrix):
     best_count = 0
 
     for R in potential_rotation_matrices:
-        if det(R) < 0:
-            continue
-
         for t in potential_translation_vectors:
 
             front_count = 0
             for i in range(n_points):
                 x = np.append(feature_points[1, i, :], 1)  # [x2, y2, 1]
-                x = x @ intrinsic_matrix
                 x_world = R.T @ x - R.T @ t
 
                 # ensure world point is in front of camera1
