@@ -7,7 +7,7 @@ import scipy.optimize as spo
 import scipy.linalg as la
 
 # global learned F, kept in memory between iterations
-F_OPTIMAL = np.ones((3, 3), dtype=np.float64)
+F_OPTIMAL = np.random.rand(3, 3) - 0.5
 
 
 def score_fundamental_matrix(
@@ -72,7 +72,7 @@ def calculate_essential_matrix(
     :return E: essential matrix
     :rtype: np.ndarray (3 x 3)
     """
-    corresponding_points /= largest_dimension  # normalize points
+    corresponding_points /= float(largest_dimension)  # normalize points
     N = corresponding_points.shape[1]  # get the number of features
 
     max_inliers = -1
@@ -80,6 +80,8 @@ def calculate_essential_matrix(
     global F_OPTIMAL
     optimal_f = F_OPTIMAL.copy()
     A = np.zeros((sample_count, 9), dtype=np.float64)
+    inliers = None
+    inliers_prime = None
     for _ in range(ransac_iterations):
         # choose 8 random points for 8-points algorithm
         subset = np.random.choice(N, sample_count, replace=False)
@@ -103,9 +105,8 @@ def calculate_essential_matrix(
                 1,
             ]  # populate the A matrix
 
-        # Minimize ||Af||
-        F = spo.least_squares(lambda f: A @ f, optimal_f.reshape(9), method="lm").x
-        F = F.reshape((3, 3))
+        _, _, Vt = la.svd(A)
+        F = Vt[-1].reshape((3, 3))
 
         inlier_count, frame_one_inliers, frame_two_inliers = score_fundamental_matrix(
             F,
@@ -114,29 +115,29 @@ def calculate_essential_matrix(
             reprojection_error_tolerance,
         )
         if inlier_count > max_inliers:
+            inliers = frame_one_inliers
+            inliers_prime = frame_two_inliers
             max_inliers = inlier_count
             optimal_f = F
 
     # refine F based on inliers
     def objective(f):
-        errors = np.zeros(inlier_count, dtype=np.float64)
-        for point_index in range(inlier_count):
+        errors = np.zeros(max_inliers, dtype=np.float64)
+        for point_index in range(max_inliers):
             errors[point_index] = (
-                frame_one_inliers[point_index].T
-                @ f.reshape((3, 3))
-                @ frame_two_inliers[point_index]
+                inliers[point_index].T @ f.reshape((3, 3)) @ inliers_prime[point_index]
             )
-        return np.sum(errors ** 2) / inlier_count
+        return np.sum(errors ** 2) / max_inliers
 
     # Minimize \( 1/n*∑_i^n(x_i^T F x_i')^2 \)
     F = spo.least_squares(objective, optimal_f.reshape(9)).x
-
-    F_OPTIMAL = F / la.norm(F)
+    F = F.reshape((3, 3))
 
     # from Forcythe and Ponce, set singular values
     U, sigma, Vt = la.svd(F)
     sigma[2] = 0
     F = U @ np.diag(sigma) @ Vt
+    F_OPTIMAL = F / la.norm(F)
     F *= float(largest_dimension)
     E = intrinsic_matrix.T @ F @ intrinsic_matrix
     U, sigma, Vt = la.svd(E)
