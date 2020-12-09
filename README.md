@@ -51,3 +51,6 @@ Then we can estimate the camera transformation using the reconstruction module. 
 In this example, if the camera started at the origin, we get a translation which moves it to `(0.12, -0.63, 0.77)`, an indication that it has moved mostly down and forwards, as expected. If we started the camera pointing in the +Z direction (it's not, but let's use that direction as an example), the new direction would be `(0.02 -0.03 1.00)`, indicating that the camera's view angle has largely stayed the same.
 
 We can build up this process from frame to frame, accumulating transformations and constructing a track along which the camera is estimated to have moved.
+
+Using Unreal Engine we can use the camera tracks to move the camera in a CG space.
+![cg_example](assets/cg_example.webp)
