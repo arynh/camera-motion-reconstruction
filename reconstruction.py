@@ -1,7 +1,7 @@
 """Reconstruct 3D transformation of cameras.
 """
 import numpy as np
-from scipy.linalg import svd
+from scipy.linalg import svd, det
 
 
 def estimate_camera_pose(essential_matrix, feature_points, intrinsic_matrix):
@@ -24,6 +24,10 @@ def estimate_camera_pose(essential_matrix, feature_points, intrinsic_matrix):
     W = np.array([[0, -1, 0], [1, 0, 0], [0, 0, 1]])
 
     U, _, Vt = svd(essential_matrix)
+    if det(U) < 0:
+        U[2] *= -1.0
+    if det(Vt) < 0:
+        Vt[:, 2] *= -1.0
 
     potential_rotation_matrices = [U @ W @ Vt, U @ W.T @ Vt]
 
@@ -50,7 +54,7 @@ def estimate_camera_pose(essential_matrix, feature_points, intrinsic_matrix):
                 x_world = R.T @ x - R.T @ t
 
                 # ensure world point is in front of camera1
-                if x_world[2] < 0:
+                if x_world[2] <= 0:
                     continue
 
                 C2_center_world = -R.T @ t
