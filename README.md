@@ -20,7 +20,7 @@ We implement basic reconstruction using the motion of detected feature points an
 
 ## Usage
 
-@TODO: establish how to use this tool
+Replace the input videos in visualization.py with your own to run the code.   
 
 ## Explanation
 
